@@ -4,6 +4,9 @@ A command-line client for [Craft Console](https://console.craftcms.com). List an
 
 It talks to the [Craftnet API](https://docs.craftcms.com/craftnet/), the API behind Craft Console. The binary is called `craft-console` so it doesn't clash with a Craft project's own `./craft` script.
 
+> [!NOTE]
+> This is an unofficial tool built by [Reusser](https://reusser.com). It isn't made, endorsed or supported by Pixel & Tonic. Craft, Craft CMS and Craft Console are their trademarks.
+
 ## Requirements
 
 - PHP 8.4.1 or later
@@ -194,3 +197,7 @@ The structure follows [laravel/forge-cli](https://github.com/laravel/forge-cli).
 - `app/Clients/Craftnet.php` is the API client.
 - `app/Commands` holds one class per command.
 - `app/Commands/Concerns` has the shared listing, lookup and formatting code.
+
+## License
+
+The MIT License (MIT). See [LICENSE.md](LICENSE.md).
