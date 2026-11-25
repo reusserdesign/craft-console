@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use Dotenv\Dotenv;
+use Symfony\Component\Yaml\Yaml;
 use Throwable;
 
 /**
@@ -17,6 +18,13 @@ class CraftProject
      * @var array<string, string|null>|null
      */
     protected ?array $dotenv = null;
+
+    /**
+     * The parsed project config, if any.
+     *
+     * @var array<string, mixed>|null
+     */
+    protected ?array $projectConfig = null;
 
     public function __construct(protected string $path) {}
 
@@ -94,21 +102,76 @@ class CraftProject
      */
     public function edition(): ?string
     {
+        return $this->projectConfig()['system']['edition'] ?? null;
+    }
+
+    /**
+     * Get the plugins in the project config, with the package name and
+     * installed version from composer.lock and any license key resolved
+     * from its environment variable.
+     *
+     * @return array<int, array{handle: string, package: ?string, version: ?string, edition: ?string, enabled: bool, licenseKey: ?string}>
+     */
+    public function plugins(): array
+    {
+        $packages = collect(static::readJson($this->path.'/composer.lock')['packages'] ?? [])
+            ->filter(fn ($package) => ($package['type'] ?? null) === 'craft-plugin' && isset($package['extra']['handle']))
+            ->keyBy(fn ($package) => $package['extra']['handle']);
+
+        return collect($this->projectConfig()['plugins'] ?? [])
+            ->filter(fn ($config) => is_array($config))
+            ->map(fn (array $config, string $handle) => [
+                'handle' => $handle,
+                'package' => $packages[$handle]['name'] ?? null,
+                'version' => isset($packages[$handle]) ? ltrim((string) $packages[$handle]['version'], 'v') : null,
+                'edition' => $config['edition'] ?? null,
+                'enabled' => (bool) ($config['enabled'] ?? true),
+                'licenseKey' => $this->parseEnv($config['licenseKey'] ?? null),
+            ])
+            ->sortKeys()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Read the project config from config/project/project.yaml (Craft
+     * 3.5+), or config/project.yaml for older sites.
+     *
+     * @return array<string, mixed>
+     */
+    protected function projectConfig(): array
+    {
+        if ($this->projectConfig !== null) {
+            return $this->projectConfig;
+        }
+
         foreach (['config/project/project.yaml', 'config/project.yaml'] as $file) {
-            $contents = @file_get_contents($this->path.'/'.$file);
-
-            if ($contents === false) {
-                continue;
-            }
-
-            // Only system.edition is needed, so match it without a YAML parser.
-            if (preg_match('/^system:\s*\n((?:[ \t]+.*\n?)*)/m', $contents, $system)
-                && preg_match('/^[ \t]+edition:\s*[\'"]?(\w+)/m', $system[1], $edition)) {
-                return $edition[1];
+            if (is_file($this->path.'/'.$file)) {
+                try {
+                    return $this->projectConfig = (array) Yaml::parseFile($this->path.'/'.$file);
+                } catch (Throwable) {
+                    break;
+                }
             }
         }
 
-        return null;
+        return $this->projectConfig = [];
+    }
+
+    /**
+     * Resolve a "$ENV_VAR" reference the way Craft's App::parseEnv() does.
+     */
+    protected function parseEnv(mixed $value): ?string
+    {
+        if (! is_string($value) || $value === '') {
+            return null;
+        }
+
+        if (preg_match('/^\$(\w+)$/', $value, $matches)) {
+            return $this->env($matches[1]);
+        }
+
+        return $value;
     }
 
     /**

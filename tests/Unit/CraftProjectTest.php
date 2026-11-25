@@ -57,3 +57,19 @@ it('returns null when there is no license key', function () {
 
     expect(CraftProject::detect($path)->licenseKey())->toBeNull();
 });
+
+it('lists plugins with versions from composer.lock and keys from .env', function () {
+    $path = fakeCraftProject(files: [
+        '.env' => "SEO_KEY=FROMENV\n",
+        'composer.lock' => json_encode(['packages' => [
+            ['name' => 'craftcms/cms', 'version' => '3.9.15'],
+            ['name' => 'nystudio107/craft-seomatic', 'version' => 'v3.5.19', 'type' => 'craft-plugin', 'extra' => ['handle' => 'seomatic']],
+        ]]),
+        'config/project/project.yaml' => "system:\n  edition: pro\nplugins:\n  seomatic:\n    edition: standard\n    enabled: true\n    licenseKey: \$SEO_KEY\n  sso:\n    edition: standard\n    enabled: false\n",
+    ]);
+
+    expect(CraftProject::detect($path)->plugins())->toBe([
+        ['handle' => 'seomatic', 'package' => 'nystudio107/craft-seomatic', 'version' => '3.5.19', 'edition' => 'standard', 'enabled' => true, 'licenseKey' => 'FROMENV'],
+        ['handle' => 'sso', 'package' => null, 'version' => null, 'edition' => 'standard', 'enabled' => false, 'licenseKey' => null],
+    ]);
+});
