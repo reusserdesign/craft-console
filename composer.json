@@ -1,0 +1,53 @@
+{
+    "name": "reusserdesign/craft-console",
+    "description": "A command-line client for Craft Console (the Craftnet API).",
+    "keywords": [
+        "craft",
+        "craftcms",
+        "craft console",
+        "craftnet",
+        "licenses",
+        "cli"
+    ],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Austin Drummond"
+        }
+    ],
+    "require": {
+        "php": "^8.3",
+        "guzzlehttp/guzzle": "^7.17",
+        "illuminate/http": "^13.44",
+        "laravel-zero/foundation": "^13.23",
+        "laravel-zero/framework": "^13.0"
+    },
+    "require-dev": {
+        "laravel/pint": "^1.30.4",
+        "mockery/mockery": "^1.6.12",
+        "pestphp/pest": "^4.7.8 || ^5.0.3"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "app/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
+    },
+    "config": {
+        "preferred-install": "dist",
+        "sort-packages": true,
+        "optimize-autoloader": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "bin": [
+        "craft-console"
+    ]
+}
