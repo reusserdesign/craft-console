@@ -126,7 +126,7 @@ class CraftProject
                 'version' => isset($packages[$handle]) ? ltrim((string) $packages[$handle]['version'], 'v') : null,
                 'edition' => $config['edition'] ?? null,
                 'enabled' => (bool) ($config['enabled'] ?? true),
-                'licenseKey' => $this->parseEnv($config['licenseKey'] ?? null),
+                'licenseKey' => static::normalizePluginKey($this->parseEnv($config['licenseKey'] ?? null)),
             ])
             ->sortKeys()
             ->values()
@@ -211,6 +211,22 @@ class CraftProject
     protected static function normalizeKey(string $key): string
     {
         return (string) preg_replace('/\s+/', '', $key);
+    }
+
+    /**
+     * Normalize a plugin license key the way Craft's
+     * Plugins::normalizePluginLicenseKey() does: uppercase letters and
+     * numbers only, so "abcd-efgh-..." matches the key Craft Console stores.
+     */
+    protected static function normalizePluginKey(?string $key): ?string
+    {
+        if (blank($key)) {
+            return null;
+        }
+
+        $key = (string) preg_replace('/[^A-Z0-9]/', '', mb_strtoupper($key));
+
+        return $key === '' ? null : $key;
     }
 
     /**

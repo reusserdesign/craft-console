@@ -73,3 +73,15 @@ it('lists plugins with versions from composer.lock and keys from .env', function
         ['handle' => 'sso', 'package' => null, 'version' => null, 'edition' => 'standard', 'enabled' => false, 'licenseKey' => null],
     ]);
 });
+
+it('normalizes dashed plugin license keys the way Craft does', function () {
+    $path = fakeCraftProject(files: [
+        '.env' => "FREEFORM_LICENSE_KEY=fqmi-abcd-efgh-ijkl-mnop-yhjp\n",
+        'config/project/project.yaml' => "system:\n  edition: pro\nplugins:\n  freeform:\n    licenseKey: \$FREEFORM_LICENSE_KEY\n  neo:\n    licenseKey: ' 6F9C-1234 5678-NAFG '\n",
+    ]);
+
+    expect(collect(CraftProject::detect($path)->plugins())->pluck('licenseKey', 'handle')->all())->toBe([
+        'freeform' => 'FQMIABCDEFGHIJKLMNOPYHJP',
+        'neo' => '6F9C12345678NAFG',
+    ]);
+});
