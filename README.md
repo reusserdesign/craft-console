@@ -6,7 +6,7 @@ It talks to the [Craftnet API](https://docs.craftcms.com/craftnet/), the API beh
 
 ## Requirements
 
-- PHP 8.3 or later
+- PHP 8.4.1 or later
 - Composer
 
 ## Installation
