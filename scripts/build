@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+#
+# Build builds/craft-console, the single-file phar that Composer installs.
+#
+# The phar bundles its own dependencies, so a global install doesn't share
+# (or upgrade) packages with your other global tools. It's built from the
+# committed code in a temporary copy, with the test tools removed, so the
+# working copy and its dev dependencies are left alone.
+#
+#   scripts/build            # version from the latest git tag
+#   scripts/build 0.2.0      # explicit version
+
+set -euo pipefail
+
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+version="${1:-$(git -C "$root" describe --tags --abbrev=0 2>/dev/null || echo dev)}"
+version="${version#v}"
+
+if [[ -n "$(git -C "$root" status --porcelain -- app bootstrap config composer.json composer.lock box.json)" ]]; then
+    echo "Commit your changes first: the phar is built from HEAD." >&2
+    exit 1
+fi
+
+stage="$(mktemp -d)"
+trap 'rm -rf "$stage"' EXIT
+
+echo "Building craft-console ${version} from $(git -C "$root" rev-parse --short HEAD)"
+
+git -C "$root" archive HEAD | tar -x -C "$stage"
+
+cd "$stage"
+composer install --no-interaction --no-progress --quiet
+composer remove --dev pestphp/pest mockery/mockery laravel/pint --no-interaction --no-progress --quiet
+php craft-console app:build craft-console --build-version="$version" --no-interaction > /dev/null
+
+mkdir -p "$root/builds"
+cp builds/craft-console "$root/builds/craft-console"
+
+echo "Built builds/craft-console ($(du -h "$root/builds/craft-console" | cut -f1))"
