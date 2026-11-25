@@ -146,7 +146,7 @@ function fakeCraftProject(string $version = '5.7.1', array $files = []): string
     $files = array_merge([
         'composer.json' => json_encode(['require' => ['craftcms/cms' => '^5.0']]),
         'composer.lock' => json_encode(['packages' => [['name' => 'craftcms/cms', 'version' => $version]]]),
-        'config/project/project.yaml' => "dateModified: 1\nsystem:\n  edition: pro\n  live: true\nplugins:\n  seomatic:\n    edition: standard\n",
+        'config/project/project.yaml' => "dateModified: 1\nsystem:\n  edition: pro\n  live: true\n",
         'config/license.key' => implode("\n", str_split(str_repeat('K', 250), 50))."\n",
     ], $files);
 

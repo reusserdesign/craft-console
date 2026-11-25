@@ -14,6 +14,8 @@ use function Laravel\Prompts\warning;
 
 class LicenseCommand extends Command
 {
+    use Concerns\ReportsPluginLicenses;
+
     /**
      * The signature of the command.
      *
@@ -23,7 +25,8 @@ class LicenseCommand extends Command
         {path? : Path to a Craft project (defaults to the current directory)}
         {--org= : Only look in this organization}
         {--personal : Only look in your personal account}
-        {--key : Only output the license key}
+        {--key : Only output the Craft license key}
+        {--no-plugins : Skip plugin licenses}
         {--json : Output raw JSON}';
 
     /**
@@ -31,7 +34,7 @@ class LicenseCommand extends Command
      *
      * @var string
      */
-    protected $description = 'Show the Craft license for the project in the current directory';
+    protected $description = 'Show the Craft and plugin licenses for the project in the current directory';
 
     /**
      * Execute the console command.
@@ -59,10 +62,15 @@ class LicenseCommand extends Command
             $this->renderProject($project, $local);
         }
 
-        [$license, $searched] = spin(
-            fn () => $this->findOwnedLicense($local['key']),
-            'Looking up the license in Craft Console',
+        $contexts = $this->searchContexts();
+
+        [$license, $owner] = spin(
+            fn () => $this->findOwnedLicense($local['key'], $contexts, $this->craftnet->cmsLicenses(...)),
+            'Looking up the Craft license in Craft Console',
         );
+
+        // Plugin licenses usually live in the same account as the Craft one.
+        $pluginContexts = $license ? $contexts->sortBy(fn ($org) => $org === $owner ? 0 : 1)->values() : $contexts;
 
         $releases = $license ? spin(
             fn () => $this->craftnet->package('craftcms/cms', ['include' => 'releases'])['releases'] ?? [],
@@ -72,37 +80,45 @@ class LicenseCommand extends Command
         $eligibility = $license ? new UpdateEligibility($license, $releases) : null;
         $installed = $project->craftVersion();
 
+        $plugins = $this->option('no-plugins') ? collect() : $this->pluginReports($project, $pluginContexts, $license);
+
         if ($this->wantsJson()) {
-            $this->outputJson($this->jsonSummary($project, $local, $license, $eligibility));
+            $this->outputJson([
+                ...$this->jsonSummary($project, $local, $license, $eligibility),
+                'plugins' => $plugins->all(),
+            ]);
 
             return $license ? self::SUCCESS : self::FAILURE;
         }
 
         if ($license === null) {
             warning(sprintf(
-                "This license isn't owned by %s. Ask whoever owns it to add you to their organization, then run 'org:switch'.",
-                $searched->map(fn ($org) => $this->contextLabel($org))->join(', ', ' or '),
+                "The Craft license isn't owned by %s. Ask whoever owns it to add you to their organization, then run 'org:switch'.",
+                $contexts->map(fn ($org) => $this->contextLabel($org))->join(', ', ' or '),
             ));
+        } else {
+            $this->renderLicense($license, $eligibility, $installed);
 
-            return self::FAILURE;
+            $this->renderVerdict($license, $eligibility, $project);
         }
 
-        $this->renderLicense($license, $eligibility, $installed);
+        $this->renderPlugins($plugins);
 
-        $this->renderVerdict($license, $eligibility, $project);
+        $this->renderRenewalSummary($license, $eligibility, $plugins);
 
-        return self::SUCCESS;
+        return $license ? self::SUCCESS : self::FAILURE;
     }
 
     /**
-     * Search for the license by key across the current context, your
-     * personal account and every organization you've switched to.
+     * The accounts to search for licenses: the current organization, your
+     * personal account and every organization you've switched to, or just
+     * the one picked with --org or --personal.
      *
-     * @return array{0: array<string, mixed>|null, 1: Collection<int, string|null>}
+     * @return Collection<int, string|null>
      */
-    protected function findOwnedLicense(string $key): array
+    protected function searchContexts(): Collection
     {
-        $contexts = match (true) {
+        return match (true) {
             (bool) $this->option('personal') => collect([null]),
             filled($this->option('org')) => collect([$this->option('org')]),
             default => collect([$this->config->get('organization'), null])
@@ -110,10 +126,22 @@ class LicenseCommand extends Command
                 ->unique()
                 ->values(),
         };
+    }
 
+    /**
+     * Search the given accounts, in order, for a license with this exact
+     * key. Returns the license and the organization that owns it.
+     *
+     * @param  Collection<int, string|null>  $contexts
+     * @param  callable(?string, array<string, mixed>): array{licenses?: array<int, array<string, mixed>>}  $search
+     * @param  array<string, mixed>  $query
+     * @return array{0: array<string, mixed>|null, 1: string|null}
+     */
+    protected function findOwnedLicense(string $key, Collection $contexts, callable $search, array $query = []): array
+    {
         foreach ($contexts as $org) {
             try {
-                $matches = $this->craftnet->cmsLicenses($org, ['search' => $key, 'perPage' => 10])['licenses'] ?? [];
+                $matches = $search($org, [...$query, 'search' => $key, 'perPage' => 10])['licenses'] ?? [];
             } catch (CraftnetException $e) {
                 // An organization you've lost access to shouldn't stop the
                 // search, but anything else (such as bad credentials) should.
@@ -125,13 +153,13 @@ class LicenseCommand extends Command
             }
 
             foreach ($matches as $license) {
-                if (hash_equals((string) ($license['key'] ?? ''), $key)) {
-                    return [$license, $contexts];
+                if (hash_equals(strtoupper((string) ($license['key'] ?? '')), strtoupper($key))) {
+                    return [$license, $org];
                 }
             }
         }
 
-        return [null, $contexts];
+        return [null, null];
     }
 
     /**

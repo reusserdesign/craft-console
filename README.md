@@ -80,7 +80,13 @@ It finds the project's license key the same way Craft does: the `CRAFT_LICENSE_K
 - the edition, domain, owner, renewal price and auto-renew setting
 - the installed Craft version (from `composer.lock`) and the edition in the project config
 - the **latest eligible version**: the newest stable Craft release published before the license's updates expired, which is as far as the site can update without renewing
-- how many newer releases need a renewal, and a warning if the installed version is already past what the license allows, or if the project's edition doesn't match the license
+- a breakdown for each major version from the installed one up (a Craft 3 site sees 3.x, 4.x and 5.x), with the latest eligible release, the latest release, and how many releases need a renewal
+- a warning if the installed version is already past what the license allows, or if the project's edition doesn't match the license
+- every plugin in the project config: its installed version and edition, when its license's updates end, the latest release its license covers in the installed major version, the latest release overall, and its renewal price. Plugin license keys stored as `$ENV_VAR` references are read from the project's `.env`.
+- warnings for plugins whose license is missing from your accounts, is a trial, is for a different edition, or is attached to a different Craft license
+- the yearly cost of renewing every license found, and what it costs to renew the ones that have lapsed
+
+Plugin licenses are searched in the account that owns the Craft license first. Plugins that aren't on Packagist (private packages) show as such. Use `--no-plugins` to skip them.
 
 ```bash
 craft-console license --json   # everything above, for scripts
