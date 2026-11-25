@@ -44,6 +44,10 @@ class LicenseCommand extends Command
 
         abort_if($project === null, 1, 'No Craft project found. Run this inside a Craft project, or pass its path.');
 
+        // Read CRAFT_CONSOLE_* settings from this project's .env, even when
+        // it was passed as a path rather than being the working directory.
+        $this->environment->useProject($project);
+
         $local = $project->licenseKey();
 
         abort_if($local === null, 1, sprintf(
@@ -120,7 +124,7 @@ class LicenseCommand extends Command
         return match (true) {
             (bool) $this->option('personal') => collect([null]),
             filled($this->option('org')) => collect([$this->option('org')]),
-            default => collect([$this->config->get('organization'), null])
+            default => collect([$this->defaultOrganization(), null])
                 ->merge($this->config->get('organizations', []))
                 ->unique()
                 ->values(),

@@ -32,11 +32,14 @@ class OrganizationCurrentCommand extends Command
      */
     public function handle(): int
     {
-        $org = $this->config->get('organization');
+        $org = $this->defaultOrganization();
+        $source = $this->environment->source('CRAFT_CONSOLE_ORG');
 
-        info($org
+        $message = $org
             ? "You are working within the {$org} organization."
-            : 'You are working within your personal account.');
+            : 'You are working within your personal account.';
+
+        info($source ? "{$message} (CRAFT_CONSOLE_ORG from {$source})" : $message);
 
         return self::SUCCESS;
     }

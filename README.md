@@ -43,11 +43,19 @@ The credentials are checked before they're saved to `~/.craft-console/config.jso
 
 | Variable | Purpose |
 | --- | --- |
-| `CRAFT_CONSOLE_USERNAME` | Username or email. Overrides the saved one. |
-| `CRAFT_CONSOLE_API_KEY` | API key. Overrides the saved one. |
+| `CRAFT_CONSOLE_USERNAME` | Username or email. Used together with `CRAFT_CONSOLE_API_KEY`. |
+| `CRAFT_CONSOLE_API_KEY` | API key. Used together with `CRAFT_CONSOLE_USERNAME`. |
+| `CRAFT_CONSOLE_ORG` | Organization slug to work within, or `personal` for your own account. |
 | `CRAFT_CONSOLE_CONFIG` | Path to the config file, instead of `~/.craft-console/config.json`. |
 
-Setting the first two lets you use the CLI in CI without running `login`.
+Each variable can be exported in your shell profile or set in the `.env` file of the Craft project you're working in. Exported variables win, then the project's `.env`, then whatever `login` and `org:switch` saved. So a client site can carry its own organization:
+
+```bash
+# ~/Sites/client-site/.env
+CRAFT_CONSOLE_ORG=client-org
+```
+
+The username and API key only take effect as a pair, so setting one without the other falls back to your saved login. `CRAFT_CONSOLE_CONFIG` is only read from your shell. Setting the credentials as variables lets you use the CLI in CI without running `login`. Keep them out of any `.env` file that gets committed.
 
 ## Organizations
 
@@ -61,7 +69,7 @@ craft-console org:switch --personal
 
 The Craftnet API can't list your organizations, so `org:switch` checks that you have access to the slug you give it. `org:list` shows the organizations you've switched to before.
 
-Any license command also accepts `--org=<slug>` or `--personal` to override the current organization for a single run.
+Any license command also accepts `--org=<slug>` or `--personal` to override the current organization for a single run, and `CRAFT_CONSOLE_ORG` (see above) sets it per shell or per project. `org:current` shows which one is in effect and where it came from.
 
 ## Commands
 

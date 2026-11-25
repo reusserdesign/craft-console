@@ -225,6 +225,14 @@ class CraftProject
             return $value;
         }
 
+        return $this->dotenv($key);
+    }
+
+    /**
+     * Read a variable from the project's .env file only.
+     */
+    public function dotenv(string $key): ?string
+    {
         if ($this->dotenv === null) {
             try {
                 $this->dotenv = Dotenv::parse((string) @file_get_contents($this->path.'/.env'));
@@ -233,7 +241,9 @@ class CraftProject
             }
         }
 
-        return $this->dotenv[$key] ?? null;
+        $value = $this->dotenv[$key] ?? null;
+
+        return is_string($value) && $value !== '' ? $value : null;
     }
 
     /**

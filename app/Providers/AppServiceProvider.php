@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Clients\Craftnet;
 use App\Repositories\ConfigRepository;
+use App\Support\Environment;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -17,14 +18,25 @@ class AppServiceProvider extends ServiceProvider
             return new ConfigRepository($this->configPath());
         });
 
+        $this->app->singleton(Environment::class, function () {
+            return new Environment(getcwd() ?: null);
+        });
+
         $this->app->singleton(Craftnet::class, function () {
             return (new Craftnet)->resolveCredentialsUsing(function () {
                 $config = $this->app->make(ConfigRepository::class);
+                $environment = $this->app->make(Environment::class);
 
-                return [
-                    $this->env('CRAFT_CONSOLE_USERNAME') ?? $config->get('username'),
-                    $this->env('CRAFT_CONSOLE_API_KEY') ?? $config->get('api_key'),
-                ];
+                // A username and key are only used as a pair, so a site that
+                // sets just one can't mix with the saved credentials.
+                $username = $environment->get('CRAFT_CONSOLE_USERNAME');
+                $apiKey = $environment->get('CRAFT_CONSOLE_API_KEY');
+
+                if ($username !== null && $apiKey !== null) {
+                    return [$username, $apiKey];
+                }
+
+                return [$config->get('username'), $config->get('api_key')];
             });
         });
     }
