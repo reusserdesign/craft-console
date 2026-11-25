@@ -15,16 +15,12 @@ It talks to the [Craftnet API](https://docs.craftcms.com/craftnet/), the API beh
 ## Installation
 
 ```bash
-git clone <this repository> craft-console
-cd craft-console
-composer install
+composer global require reusserdesign/craft-console
 ```
 
-Run it from the project directory with `./craft-console`, or put it on your `PATH`:
+Make sure Composer's global `bin` directory (usually `~/.composer/vendor/bin`) is on your `PATH`. The CLI is a single self-contained phar, so it doesn't share or upgrade dependencies with your other global Composer tools.
 
-```bash
-ln -s "$(pwd)/craft-console" /usr/local/bin/craft-console
-```
+If a Craft site you work in is pinned to an older PHP version, run the CLI through your PHP version manager. With [Butler](https://getbutler.dev), for example, use `butler craft-console`.
 
 ## Authentication
 
@@ -185,10 +181,17 @@ craft-console plugin:list --all --json | jq '.licenses[] | select(.autoRenew == 
 ## Development
 
 ```bash
+git clone https://github.com/reusserdesign/craft-console.git
+cd craft-console
 composer install
+./craft-console list
 ./vendor/bin/pest
 ./vendor/bin/pint
 ```
+
+From a clone, `./craft-console` runs the source directly. `composer build` (or `scripts/build 0.2.0`) builds `builds/craft-console`, the phar that Composer installs, from the committed code in a temporary copy without the test tools.
+
+To release, commit your changes, run `scripts/build <version>`, commit the rebuilt phar, then tag that commit `v<version>`.
 
 Tests use a throwaway config file in `tests/.craft-console` and block real HTTP requests, so they never touch your saved credentials or the live API.
 
