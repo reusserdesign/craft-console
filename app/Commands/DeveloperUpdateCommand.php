@@ -3,7 +3,6 @@
 namespace App\Commands;
 
 use function Laravel\Prompts\info;
-use function Laravel\Prompts\spin;
 
 class DeveloperUpdateCommand extends Command
 {
@@ -61,7 +60,7 @@ class DeveloperUpdateCommand extends Command
 
         abort_if($attributes === [], 1, 'Nothing to update. Pass at least one option, such as --edition or --notes.');
 
-        $license = spin(
+        $license = $this->spin(
             fn () => $this->craftnet->updateDeveloperLicense($this->argument('license'), $attributes),
             'Updating license',
         );

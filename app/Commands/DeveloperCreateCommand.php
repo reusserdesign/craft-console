@@ -3,7 +3,6 @@
 namespace App\Commands;
 
 use function Laravel\Prompts\info;
-use function Laravel\Prompts\spin;
 use function Laravel\Prompts\table;
 use function Laravel\Prompts\text;
 
@@ -69,7 +68,7 @@ class DeveloperCreateCommand extends Command
             'privateNotes' => $this->option('private-notes'),
         ], fn ($value) => ! is_null($value));
 
-        $licenses = spin(
+        $licenses = $this->spin(
             fn () => collect(range(1, $count))->map(fn () => $this->craftnet->createDeveloperLicense($attributes)),
             $count === 1 ? 'Creating license' : "Creating {$count} licenses",
         );

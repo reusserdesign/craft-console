@@ -2,6 +2,7 @@
 
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Client\Request;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Http;
 use LaravelZero\Framework\Exceptions\ConsoleException;
 
@@ -127,4 +128,12 @@ it('requires credentials', function () {
         ->toThrow(ConsoleException::class, "You are not logged in. Run 'craft-console login' first.");
 
     Http::assertNothingSent();
+});
+
+it('prints nothing but JSON with --json', function () {
+    Http::fake([craftnet('licenses/cms*') => Http::response(licensePage([cmsLicense()]))]);
+
+    Artisan::call('cms:list', ['--json' => true]);
+
+    expect(json_decode(Artisan::output(), true))->toHaveKey('total', 1);
 });

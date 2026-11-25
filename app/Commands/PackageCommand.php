@@ -2,7 +2,6 @@
 
 namespace App\Commands;
 
-use function Laravel\Prompts\spin;
 use function Laravel\Prompts\table;
 
 class PackageCommand extends Command
@@ -33,7 +32,7 @@ class PackageCommand extends Command
     {
         $withReleases = $this->option('releases') || filled($this->option('constraint'));
 
-        $package = spin(fn () => $this->craftnet->package($this->argument('name'), [
+        $package = $this->spin(fn () => $this->craftnet->package($this->argument('name'), [
             'include' => $withReleases ? 'releases' : null,
             'constraint' => $this->option('constraint'),
             'minStability' => $this->option('stability'),

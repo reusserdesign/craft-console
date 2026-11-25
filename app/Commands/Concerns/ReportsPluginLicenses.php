@@ -8,7 +8,6 @@ use App\Support\UpdateEligibility;
 use Illuminate\Support\Collection;
 
 use function Laravel\Prompts\info;
-use function Laravel\Prompts\spin;
 use function Laravel\Prompts\table;
 use function Laravel\Prompts\warning;
 
@@ -29,7 +28,7 @@ trait ReportsPluginLicenses
             return collect();
         }
 
-        return spin(
+        return $this->spin(
             fn () => $plugins->map(fn (array $plugin) => $this->pluginReport($plugin, $contexts, $cmsLicense)),
             "Checking {$plugins->count()} plugins",
         );

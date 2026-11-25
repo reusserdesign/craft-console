@@ -8,7 +8,6 @@ use App\Support\UpdateEligibility;
 use Illuminate\Support\Collection;
 
 use function Laravel\Prompts\info;
-use function Laravel\Prompts\spin;
 use function Laravel\Prompts\table;
 use function Laravel\Prompts\warning;
 
@@ -64,7 +63,7 @@ class LicenseCommand extends Command
 
         $contexts = $this->searchContexts();
 
-        [$license, $owner] = spin(
+        [$license, $owner] = $this->spin(
             fn () => $this->findOwnedLicense($local['key'], $contexts, $this->craftnet->cmsLicenses(...)),
             'Looking up the Craft license in Craft Console',
         );
@@ -72,7 +71,7 @@ class LicenseCommand extends Command
         // Plugin licenses usually live in the same account as the Craft one.
         $pluginContexts = $license ? $contexts->sortBy(fn ($org) => $org === $owner ? 0 : 1)->values() : $contexts;
 
-        $releases = $license ? spin(
+        $releases = $license ? $this->spin(
             fn () => $this->craftnet->package('craftcms/cms', ['include' => 'releases'])['releases'] ?? [],
             'Retrieving Craft releases',
         ) : [];

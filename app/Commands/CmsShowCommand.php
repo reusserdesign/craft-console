@@ -2,8 +2,6 @@
 
 namespace App\Commands;
 
-use function Laravel\Prompts\spin;
-
 class CmsShowCommand extends Command
 {
     use Concerns\FindsLicenses;
@@ -34,7 +32,7 @@ class CmsShowCommand extends Command
     {
         $org = $this->organization();
 
-        $license = spin(fn () => $this->findLicense(
+        $license = $this->spin(fn () => $this->findLicense(
             $this->argument('license'),
             fn ($id) => $this->craftnet->cmsLicense($org, $id),
             fn ($query) => $this->craftnet->cmsLicenses($org, $query),

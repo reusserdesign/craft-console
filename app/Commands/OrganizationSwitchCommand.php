@@ -3,7 +3,6 @@
 namespace App\Commands;
 
 use function Laravel\Prompts\info;
-use function Laravel\Prompts\spin;
 use function Laravel\Prompts\suggest;
 
 class OrganizationSwitchCommand extends Command
@@ -58,7 +57,7 @@ class OrganizationSwitchCommand extends Command
 
         // The API has no endpoint for listing organizations, so confirm
         // access by requesting a single license from the organization.
-        spin(fn () => $this->craftnet->cmsLicenses($slug, ['perPage' => 1]), 'Checking organization access');
+        $this->spin(fn () => $this->craftnet->cmsLicenses($slug, ['perPage' => 1]), 'Checking organization access');
 
         $this->config->set('organization', $slug);
         $this->config->set('organizations', collect($known)->push($slug)->unique()->sort()->values()->all());

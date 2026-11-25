@@ -2,8 +2,6 @@
 
 namespace App\Commands;
 
-use function Laravel\Prompts\spin;
-
 class DeveloperShowCommand extends Command
 {
     /**
@@ -34,7 +32,7 @@ class DeveloperShowCommand extends Command
      */
     public function handle(): int
     {
-        $license = spin(
+        $license = $this->spin(
             fn () => $this->craftnet->developerLicense($this->argument('license')),
             'Retrieving license',
         );

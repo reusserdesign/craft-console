@@ -5,7 +5,6 @@ namespace App\Commands\Concerns;
 use App\Clients\Craftnet;
 use Illuminate\Support\Collection;
 
-use function Laravel\Prompts\spin;
 use function Laravel\Prompts\table;
 use function Laravel\Prompts\warning;
 
@@ -56,7 +55,7 @@ trait ListsLicenses
             'perPage' => $all ? Craftnet::MAX_PER_PAGE : $perPage,
         ]);
 
-        $result = spin(function () use ($fetch, $query, $all, $page) {
+        $result = $this->spin(function () use ($fetch, $query, $all, $page) {
             $result = $fetch([...$query, 'page' => $all ? 1 : $page]);
             $licenses = collect($result['licenses'] ?? []);
 

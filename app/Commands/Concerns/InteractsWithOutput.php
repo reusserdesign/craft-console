@@ -16,6 +16,24 @@ trait InteractsWithOutput
     }
 
     /**
+     * Run the callback behind a spinner, unless the output is JSON or
+     * isn't a terminal, where spinner frames would corrupt the output.
+     *
+     * @template TReturn
+     *
+     * @param  callable(): TReturn  $callback
+     * @return TReturn
+     */
+    protected function spin(callable $callback, string $message = ''): mixed
+    {
+        if ($this->wantsJson() || ! stream_isatty(STDOUT)) {
+            return $callback();
+        }
+
+        return \Laravel\Prompts\spin($callback, $message);
+    }
+
+    /**
      * Write the given data to the output as pretty-printed JSON.
      */
     protected function outputJson(mixed $data): void

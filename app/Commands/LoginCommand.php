@@ -5,7 +5,6 @@ namespace App\Commands;
 use function Laravel\Prompts\info;
 use function Laravel\Prompts\note;
 use function Laravel\Prompts\password;
-use function Laravel\Prompts\spin;
 use function Laravel\Prompts\text;
 
 class LoginCommand extends Command
@@ -52,7 +51,7 @@ class LoginCommand extends Command
 
         // There is no "current user" endpoint, so a one-result license
         // request is the cheapest way to verify the credentials.
-        spin(fn () => $this->craftnet->cmsLicenses(null, ['perPage' => 1]), 'Verifying credentials');
+        $this->spin(fn () => $this->craftnet->cmsLicenses(null, ['perPage' => 1]), 'Verifying credentials');
 
         $this->config->set('username', $username);
         $this->config->set('api_key', $key);
