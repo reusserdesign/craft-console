@@ -199,3 +199,16 @@ it('skips plugins with --no-plugins', function () {
 
     Http::assertNotSent(fn (Request $request) => str_contains($request->url(), 'licenses/plugins'));
 });
+
+it('words the renewal summary for a single license', function () {
+    $path = fakeCraftProject();
+
+    Http::fake([
+        craftnet('licenses/cms*') => Http::response(licensePage([cmsLicense(['key' => str_repeat('K', 250)])])),
+        craftnet('package/craftcms/cms*') => $this->releases,
+    ]);
+
+    $this->artisan('license', ['path' => $path])
+        ->expectsPromptsInfo('Renewing this license costs $99.00/year.')
+        ->assertSuccessful();
+});

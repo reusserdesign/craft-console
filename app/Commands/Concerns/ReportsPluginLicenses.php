@@ -178,7 +178,9 @@ trait ReportsPluginLicenses
         $total = $priced->sum(fn ($item) => (float) $item['license']['renewalPrice']);
         $lapsed = $priced->where('expired', true);
 
-        $message = sprintf('Renewing all %d licenses costs %s/year.', $priced->count(), $this->money($total));
+        $message = $priced->count() === 1
+            ? sprintf('Renewing this license costs %s/year.', $this->money($total))
+            : sprintf('Renewing all %d licenses costs %s/year.', $priced->count(), $this->money($total));
 
         if ($lapsed->isNotEmpty()) {
             $message .= sprintf(
