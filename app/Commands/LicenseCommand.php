@@ -158,8 +158,6 @@ class LicenseCommand extends Command
      */
     protected function renderLicense(array $license, UpdateEligibility $eligibility, ?string $installed): void
     {
-        $locked = $eligibility->lockedVersions();
-
         table(['License', ''], [
             ['ID', (string) $license['id']],
             ['Edition', $this->displayValue($license['editionHandle'] ?? null)],
@@ -170,12 +168,27 @@ class LicenseCommand extends Command
             ['Renewal price', $this->renewalPrice($license)],
             ['Auto-renew', $this->displayValue($license['autoRenew'] ?? null)],
             ['Installed version', $this->displayValue($installed)],
-            ['Latest eligible version', $this->displayValue($eligibility->latestEligibleVersion())],
-            ['Latest Craft version', $this->displayValue($eligibility->latestVersion())],
-            ['Releases needing renewal', $locked->isEmpty() ? 'None' : (string) $locked->count()],
             ['Last seen running', $this->displayValue($license['lastVersion'] ?? null)],
             ['Last activity', $this->date($license['lastActivityOn'] ?? null)],
         ]);
+
+        $installedMajor = UpdateEligibility::majorOf($installed);
+
+        table(
+            ['Craft', 'Latest eligible', 'Latest release', 'Needs renewal'],
+            $eligibility->majors($installed)
+                ->map(fn ($row) => [
+                    $row['major'].'.x'.($row['major'] === $installedMajor ? ' (installed)' : ''),
+                    $row['latestEligibleVersion'] ?? 'None',
+                    $row['latestVersion'],
+                    match (true) {
+                        $row['versionsNeedingRenewal'] === 0 => 'No',
+                        $row['latestEligibleVersion'] === null => 'Yes (every release)',
+                        default => "Yes ({$row['versionsNeedingRenewal']} newer ".str('release')->plural($row['versionsNeedingRenewal']).')',
+                    },
+                ])
+                ->all(),
+        );
     }
 
     /**
@@ -186,12 +199,16 @@ class LicenseCommand extends Command
     protected function renderVerdict(array $license, UpdateEligibility $eligibility, CraftProject $project): void
     {
         $installed = $project->craftVersion();
-        $eligible = $eligibility->latestEligibleVersion();
+        $major = UpdateEligibility::majorOf($installed);
+        $current = $eligibility->majors($installed)->firstWhere('major', $major);
+        $eligible = $current['latestEligibleVersion'] ?? $eligibility->latestEligibleVersion();
         $latest = $eligibility->latestVersion();
         $price = $this->renewalPrice($license);
 
         if ($eligibility->exceeds($installed) && $project->hasLockedVersion()) {
-            warning("Craft {$installed} is newer than this license allows ({$eligible}). Renew ({$price}) or the control panel will flag it.");
+            warning($eligible
+                ? "Craft {$installed} is newer than this license allows ({$eligible}). Renew ({$price}) or the control panel will flag it."
+                : "No Craft {$major} release is covered by this license. Renew ({$price}) or the control panel will flag it.");
         }
 
         $edition = $project->edition();
@@ -209,7 +226,9 @@ class LicenseCommand extends Command
         $expiresOn = $eligibility->expiresOn()?->format('Y-m-d');
 
         if ($eligibility->hasExpired()) {
-            warning("Updates ended {$expiresOn}. This site can update as far as Craft {$eligible}. Renewing ({$price}) unlocks Craft {$latest}.");
+            $reach = $eligible ? "This site can update as far as Craft {$eligible}." : "No Craft {$major} release is covered.";
+
+            warning("Updates ended {$expiresOn}. {$reach} Renewing ({$price}) unlocks Craft {$latest}.");
 
             return;
         }
@@ -259,6 +278,7 @@ class LicenseCommand extends Command
                 'latestEligibleVersion' => $eligibility->latestEligibleVersion(),
                 'latestVersion' => $eligibility->latestVersion(),
                 'versionsNeedingRenewal' => $eligibility->lockedVersions()->all(),
+                'majors' => $eligibility->majors($project->craftVersion())->all(),
                 'installedExceedsLicense' => $eligibility->exceeds($project->craftVersion()),
             ] : null,
         ];

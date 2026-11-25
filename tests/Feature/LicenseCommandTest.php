@@ -31,6 +31,10 @@ it('shows the license for an expired project and the version it can reach', func
 
     $this->artisan('license', ['path' => $path])
         ->expectsOutputToContain('2026-04-01 (expired)')
+        ->expectsPromptsTable(
+            ['Craft', 'Latest eligible', 'Latest release', 'Needs renewal'],
+            [['5.x (installed)', '5.8.0', '5.12.3', 'Yes (2 newer releases)']],
+        )
         ->expectsPromptsWarning('Updates ended 2026-04-01. This site can update as far as Craft 5.8.0. Renewing ($99.00/year) unlocks Craft 5.12.3.')
         ->assertSuccessful();
 

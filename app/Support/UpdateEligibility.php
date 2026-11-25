@@ -108,16 +108,62 @@ class UpdateEligibility
     }
 
     /**
+     * Break eligibility down by major version, from the installed major
+     * (or the oldest known one) up to the newest.
+     *
+     * @return Collection<int, array{major: int, latestEligibleVersion: ?string, latestVersion: string, versionsNeedingRenewal: int}>
+     */
+    public function majors(?string $installedVersion = null): Collection
+    {
+        $expiresOn = $this->expiresOn();
+        $from = static::majorOf($installedVersion);
+
+        return $this->releases
+            ->groupBy(fn ($release) => static::majorOf($release['version']))
+            ->filter(fn ($releases, $major) => $from === null || $major >= $from)
+            ->map(function (Collection $releases, int $major) use ($expiresOn) {
+                $eligible = $expiresOn === null
+                    ? $releases
+                    : $releases->filter(fn ($release) => $release['time']->lte($expiresOn));
+
+                return [
+                    'major' => $major,
+                    'latestEligibleVersion' => $eligible->first()['version'] ?? null,
+                    'latestVersion' => $releases->first()['version'],
+                    'versionsNeedingRenewal' => $releases->count() - $eligible->count(),
+                ];
+            })
+            ->sortKeys()
+            ->values();
+    }
+
+    /**
+     * Get the major version from a version string or constraint, such as
+     * "3.9.15" or "^3.6.0".
+     */
+    public static function majorOf(?string $version): ?int
+    {
+        return $version !== null && preg_match('/(\d+)/', $version, $matches) ? (int) $matches[1] : null;
+    }
+
+    /**
      * Determine if the given version is newer than the license allows.
      */
     public function exceeds(?string $version): bool
     {
-        $eligible = $this->latestEligibleVersion();
-
-        if (blank($version) || $eligible === null || ! preg_match('/^\d+(\.\d+)*$/', $version)) {
+        if (blank($version) || ! preg_match('/^\d+(\.\d+)*$/', $version)) {
             return false;
         }
 
-        return version_compare($version, $eligible, '>');
+        // Compare within the same major: a 3.x patch released after expiry is
+        // still off-limits even if an older-dated 4.x release is covered.
+        $row = $this->majors($version)->firstWhere('major', static::majorOf($version));
+
+        if ($row === null) {
+            return false;
+        }
+
+        return $row['latestEligibleVersion'] === null
+            || version_compare($version, $row['latestEligibleVersion'], '>');
     }
 }
