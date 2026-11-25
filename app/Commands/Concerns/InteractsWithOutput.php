@@ -2,6 +2,8 @@
 
 namespace App\Commands\Concerns;
 
+use App\Support\Spinner;
+
 use function Laravel\Prompts\info;
 use function Laravel\Prompts\table;
 
@@ -30,7 +32,7 @@ trait InteractsWithOutput
             return $callback();
         }
 
-        return \Laravel\Prompts\spin($callback, $message);
+        return (new Spinner($message))->spin($callback);
     }
 
     /**
