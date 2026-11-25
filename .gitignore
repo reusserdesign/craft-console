@@ -1,5 +1,9 @@
 /vendor
 /.idea
 /.vscode
-/.vagrant
+/.fleet
+/.zed
+/phpunit.xml
+/tests/.craft-console
 .phpunit.result.cache
+.DS_Store
