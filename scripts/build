@@ -31,6 +31,12 @@ git -C "$root" archive HEAD | tar -x -C "$stage"
 cd "$stage"
 composer install --no-interaction --no-progress --quiet
 composer remove --dev pestphp/pest mockery/mockery laravel/pint --no-interaction --no-progress --quiet
+
+# Drop data the CLI never loads: Carbon's translations (dates are only
+# formatted as Y-m-d, in English) and the desktop-notifier binaries
+# jolinotif bundles for Laravel Zero's notify(), which isn't used.
+find vendor/nesbot/carbon/src/Carbon/Lang -type f ! -name 'en.php' -delete
+rm -rf vendor/jolicode/jolinotif/bin
 php craft-console app:build craft-console --build-version="$version" --no-interaction > /dev/null
 
 mkdir -p "$root/builds"
