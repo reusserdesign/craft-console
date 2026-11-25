@@ -17,10 +17,11 @@
     ],
     "require": {
         "php": "^8.3",
-        "guzzlehttp/guzzle": "^7.17",
-        "illuminate/http": "^13.44",
-        "laravel-zero/foundation": "^13.23",
-        "laravel-zero/framework": "^13.0"
+        "guzzlehttp/guzzle": "^7.8",
+        "illuminate/http": "^13.0",
+        "laravel-zero/foundation": "^13.0",
+        "laravel-zero/framework": "^13.0",
+        "vlucas/phpdotenv": "^5.6"
     },
     "require-dev": {
         "laravel/pint": "^1.30.4",
