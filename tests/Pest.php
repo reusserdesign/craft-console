@@ -1,6 +1,7 @@
 <?php
 
 use App\Repositories\ConfigRepository;
+use Illuminate\Filesystem\Filesystem;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
@@ -25,6 +26,10 @@ uses(TestCase::class)
             ->set('api_key', 'secret-key');
     })
     ->afterEach(function () {
+        foreach ($this->tempPaths ?? [] as $temp) {
+            (new Filesystem)->deleteDirectory($temp);
+        }
+
         $path = resolve(ConfigRepository::class)->path();
 
         if (file_exists($path)) {
@@ -127,4 +132,33 @@ function pluginLicense(array $attributes = []): array
         'dateCreated' => '2026-01-15T00:00:00+00:00',
         'org' => null,
     ], $attributes);
+}
+
+/**
+ * Create a throwaway Craft project on disk and return its path.
+ *
+ * @param  array<string, string>  $files  Extra files, keyed by relative path
+ */
+function fakeCraftProject(string $version = '5.7.1', array $files = []): string
+{
+    $path = sys_get_temp_dir().'/craft-console-project-'.bin2hex(random_bytes(4));
+
+    $files = array_merge([
+        'composer.json' => json_encode(['require' => ['craftcms/cms' => '^5.0']]),
+        'composer.lock' => json_encode(['packages' => [['name' => 'craftcms/cms', 'version' => $version]]]),
+        'config/project/project.yaml' => "dateModified: 1\nsystem:\n  edition: pro\n  live: true\nplugins:\n  seomatic:\n    edition: standard\n",
+        'config/license.key' => implode("\n", str_split(str_repeat('K', 250), 50))."\n",
+    ], $files);
+
+    foreach ($files as $file => $contents) {
+        if (! is_dir(dirname("{$path}/{$file}"))) {
+            mkdir(dirname("{$path}/{$file}"), 0755, true);
+        }
+
+        file_put_contents("{$path}/{$file}", $contents);
+    }
+
+    test()->deleteAfterTest($path);
+
+    return $path;
 }

@@ -65,6 +65,28 @@ Any license command also accepts `--org=<slug>` or `--personal` to override the 
 
 ## Commands
 
+### The current project's license
+
+Run `license` from anywhere inside a Craft project, or pass the project's path:
+
+```bash
+cd ~/Sites/my-craft-site
+craft-console license
+craft-console license ~/Sites/other-site
+```
+
+It finds the project's license key the same way Craft does: the `CRAFT_LICENSE_KEY` environment variable (from your shell or the project's `.env`), then the file at `CRAFT_LICENSE_KEY_PATH`, then `config/license.key`. It looks the key up in your personal account, the current organization and every organization you've switched to, then shows:
+
+- the edition, domain, owner, renewal price and auto-renew setting
+- the installed Craft version (from `composer.lock`) and the edition in the project config
+- the **latest eligible version**: the newest stable Craft release published before the license's updates expired, which is as far as the site can update without renewing
+- how many newer releases need a renewal, and a warning if the installed version is already past what the license allows, or if the project's edition doesn't match the license
+
+```bash
+craft-console license --json   # everything above, for scripts
+craft-console license --key    # print the project's license key (no API call)
+```
+
 ### Craft licenses
 
 ```bash
