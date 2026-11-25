@@ -1,7 +1,7 @@
 <?php
 
+use App\Exceptions\CraftnetException;
 use Illuminate\Support\Facades\Http;
-use LaravelZero\Framework\Exceptions\ConsoleException;
 
 it('switches to an organization after checking access', function () {
     Http::fake([craftnet('org/acme/licenses/cms*') => Http::response(licensePage([]))]);
@@ -18,7 +18,7 @@ it('does not switch to an organization you cannot access', function () {
     Http::fake([craftnet('org/nope/licenses/cms*') => Http::response([], 404)]);
 
     expect(fn () => $this->artisan('org:switch', ['organization' => 'nope'])->run())
-        ->toThrow(ConsoleException::class, 'Not found.');
+        ->toThrow(CraftnetException::class, 'Not found.');
 
     expect($this->config->get('organization'))->toBeNull();
 });

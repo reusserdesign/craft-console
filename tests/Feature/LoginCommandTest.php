@@ -1,8 +1,8 @@
 <?php
 
+use App\Exceptions\CraftnetException;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
-use LaravelZero\Framework\Exceptions\ConsoleException;
 
 beforeEach(function () {
     $this->config->flush();
@@ -37,7 +37,7 @@ it('does not save rejected credentials', function () {
     Http::fake([craftnet('licenses/cms*') => Http::response(['message' => 'Invalid Credentials'], 400)]);
 
     expect(fn () => $this->artisan('login', ['--username' => 'austin', '--key' => 'wrong'])->run())
-        ->toThrow(ConsoleException::class, 'rejected the username or API key');
+        ->toThrow(CraftnetException::class, 'rejected the username or API key');
 
     expect($this->config->get('api_key'))->toBeNull();
 });

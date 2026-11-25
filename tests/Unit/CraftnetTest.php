@@ -1,14 +1,14 @@
 <?php
 
 use App\Clients\Craftnet;
+use App\Exceptions\CraftnetException;
 use Illuminate\Support\Facades\Http;
-use LaravelZero\Framework\Exceptions\ConsoleException;
 
 function craftnetError(callable $callback): string
 {
     try {
         $callback();
-    } catch (ConsoleException $e) {
+    } catch (CraftnetException $e) {
         return $e->getMessage();
     }
 
@@ -41,4 +41,18 @@ it('explains missing resources', function () {
         ->toStartWith('Not found.');
 
     Http::assertSent(fn ($request) => $request->url() === craftnet('org/acme/licenses/cms/5'));
+});
+
+it('keeps the HTTP status on the exception', function () {
+    Http::fake([craftnet('*') => Http::response([], 403)]);
+
+    try {
+        (new Craftnet('austin', 'key'))->cmsLicenses('acme');
+    } catch (CraftnetException $e) {
+        expect($e->status)->toBe(403)->and($e->isNotAccessible())->toBeTrue();
+
+        return;
+    }
+
+    throw new RuntimeException('Expected the request to fail.');
 });

@@ -2,6 +2,7 @@
 
 namespace App\Clients;
 
+use App\Exceptions\CraftnetException;
 use Closure;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\PendingRequest;
@@ -223,11 +224,11 @@ class Craftnet
         try {
             $response = $callback($request);
         } catch (ConnectionException $e) {
-            abort(1, 'Could not reach the Craftnet API: '.$e->getMessage());
+            throw new CraftnetException('Could not reach the Craftnet API: '.$e->getMessage());
         }
 
         if ($response->failed()) {
-            abort(1, $this->errorMessage($response));
+            throw new CraftnetException($this->errorMessage($response), $response->status());
         }
 
         return $response->json() ?? [];
