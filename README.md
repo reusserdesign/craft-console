@@ -191,17 +191,13 @@ composer install
 
 From a clone, `./craft-console` runs the source directly. `composer build` (or `scripts/build 0.2.0`) builds `builds/craft-console`, the phar that Composer installs, from the committed code in a temporary copy without the test tools. You only need this to try a build locally.
 
-To release, commit your changes, then build the phar, commit it and tag that commit:
+Releases are built by the **Release** workflow in GitHub Actions. Run it from the Actions tab, or with:
 
 ```bash
-scripts/build 0.2.0
-git add builds/craft-console
-git commit -m "Build v0.2.0"
-git tag -a v0.2.0 -m "v0.2.0"
-git push origin main v0.2.0
+gh workflow run release.yml -f version=0.2.0
 ```
 
-Packagist picks up the new tag from there. GitHub Actions runs the tests on PHP 8.4, 8.5 and 8.6 for every push and pull request.
+It runs the tests, builds the phar on PHP 8.4, commits it to `main`, tags the commit `v0.2.0`, and publishes a GitHub release with the phar attached. Packagist picks up the new tag from there. Tests run on PHP 8.4, 8.5 and 8.6 for every push and pull request.
 
 Tests use a throwaway config file in `tests/.craft-console` and block real HTTP requests, so they never touch your saved credentials or the live API.
 

@@ -1,0 +1,73 @@
+name: Release
+
+# Builds the phar, commits it, tags the commit and publishes a GitHub
+# release. Packagist installs the phar from the tagged commit, and its
+# GitHub hook picks up the new tag on its own.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to release, such as 0.2.0
+        required: true
+
+concurrency: release
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    env:
+      VERSION: ${{ inputs.version }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Check the version
+        run: |
+          VERSION="${VERSION#v}"
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]]; then
+            echo "::error::'$VERSION' isn't a version like 0.2.0"
+            exit 1
+          fi
+          if git rev-parse "v$VERSION" >/dev/null 2>&1; then
+            echo "::error::v$VERSION already exists"
+            exit 1
+          fi
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+
+      # Build on the oldest supported PHP so the phar runs everywhere.
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+          ini-values: phar.readonly=0
+
+      - run: composer install --prefer-dist --no-interaction --no-progress
+
+      - run: vendor/bin/pest
+
+      - name: Build the phar
+        run: |
+          scripts/build "$VERSION"
+          builds/craft-console --version | grep -q "$VERSION"
+
+      - name: Commit, tag and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add builds/craft-console
+          git commit -m "Build v$VERSION"
+          git tag -a "v$VERSION" -m "v$VERSION"
+          git push origin HEAD:main "v$VERSION"
+
+      - name: Publish the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "v$VERSION" builds/craft-console --title "v$VERSION" --generate-notes --verify-tag
